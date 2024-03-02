@@ -1,0 +1,48 @@
+# Squeak standard Library.
+
+# DEFINITIONS - GLOBAL
+define $NULL                        0
+
+# DEFINITIONS - WINAPI INTEROP
+define $MAX_PATH                    256       
+
+#Memory Allocation
+# https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc
+define $MEM_COMMIT                  0x1000
+define $MEM_RESERVE                 0x2000
+define $MEM_COMMIT_RESERVE          0x3000
+define $MEM_RESET                   0x80000
+
+#Memory Protection Constants
+# https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants
+define $PAGE_EXECUTE                0x10
+define $PAGE_EXECUTE_READ           0x20
+define $PAGE_EXECUTE_READWRITE      0x40
+
+define $PAGE_READWRITE              0x04
+
+# Kernel32.CreateConsoleScreenBuffer 
+# https://learn.microsoft.com/en-us/windows/console/createconsolescreenbuffer
+define $FILE_SHARE_READ             01
+define $FILE_SHARE_WRITE            02
+
+# Kernel32.GetStdHandle
+define $STD_INPUT_HANDLE            -10
+define $STD_OUTPUT_HANDLE           -11
+define $STD_ERROR_HANDLE            -12
+
+# Temporary functions for libraries and things
+reserve std-Kernel32
+reserve std-LoadLibraryA
+reserve std-GetProcAddress
+reserve std-GetLastError
+reserve std-Error
+reserve std-ExitProcess
+
+# Temporary functions for mounting k32 at the start of each program
+mountdll kernel32                      -> std-Kernel32
+mountfn std-Kernel32    LoadLibraryA   -> std-LoadLibraryA
+mountfn std-Kernel32    GetLastError   -> std-GetLastError
+mountfn std-Kernel32    GetProcAddress -> std-GetProcAddress
+mountfn std-Kernel32    ExitProcess    -> std-ExitProcess
+#mountfn std-Kernel32    GetLastError   -> std-LastError

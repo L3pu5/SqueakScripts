@@ -1,0 +1,14 @@
+include './test/std.sq'
+
+reserve GetStdHandle 
+reserve WriteConsoleOutput
+reserve hConsole
+reserve ExitProcess
+
+stdcall std-GetProcAddress (std-Kernel32, "GetStdHandle") -> GetStdHandle
+stdcall std-GetProcAddress (std-Kernel32, "WriteConsoleA") -> WriteConsoleOutput
+
+stdcall GetStdHandle ($STD_OUTPUT_HANDLE) -> hConsole
+stdcall WriteConsole (hConsole, "Hello world!", 12, _, $NULL)
+
+stdcall std-ExitProcess ( 0 )

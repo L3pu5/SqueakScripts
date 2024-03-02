@@ -1,0 +1,56 @@
+include './test/std.sq'
+
+seed random
+
+reserve GetStdHandle 
+reserve WriteConsole
+reserve hConsole
+reserve ExitProcess
+reserve hUser32
+reserve VirtualAlloc
+reserve wsprintfA
+reserve ptr
+reserve length
+reserve ReadConsole
+reserve hConsoleIn
+
+reserve GetSystemInfo
+
+
+stdcall std-GetProcAddress (std-Kernel32, 'GetStdHandle')   -> GetStdHandle
+stdcall std-GetProcAddress (std-Kernel32, 'WriteConsoleA')  -> WriteConsole
+stdcall std-GetProcAddress (std-Kernel32, 'ReadFile')       -> ReadConsole 
+stdcall std-GetProcAddress (std-Kernel32, 'VirtualAlloc')   -> VirtualAlloc
+stdcall std-LoadLibraryA   ('User32.dll')                   -> hUser32
+stdcall std-GetProcAddress (hUser32, 'wsprintfA')           -> wsprintfA
+stdcall std-GetProcAddress (std-Kernel32, 'GetSystemInfo')  -> GetSystemInfo
+
+struct {
+    DWORD       dwOemID;
+    DWORD       dwPageSize;
+    LPVOID      lpMinimumApplicationAddress;
+    LPVOID      lpMaximumApplicationAddres;
+    DWORD_PTR   dwActiveProcessorMask;
+    DWORD       dwNumberOfProcessors;
+    DWORD       dwProcessorType;
+    DWORD       dwAllocationGranularity;
+    WORD        wProcessorLevel;
+    WORD        wProcessorRevision;
+} SYSTEMINFO
+
+#Reserve a struct in CompilerSpace to receive the SystemInfo
+reserve sysInfo as *SYSTEMINFO
+
+# SYSTEMINFO struct
+stdcall VirtualAlloc ($NULL, 1024, $MEM_COMMIT_RESERVE, $PAGE_READWRITE) -> sysInfo
+
+#Reserve a string in Memory
+stdcall VirtualAlloc ($NULL, 1024, $MEM_COMMIT_RESERVE, $PAGE_READWRITE) -> ptr
+
+stdcall GetSystemInfo (sysInfo)
+cdecall wsprintfA (ptr, "dwPageSize: '%lu' \n", sysInfo>dwPageSize ) -> length
+stdcall GetStdHandle ($STD_OUTPUT_HANDLE) -> hConsole
+stdcall WriteConsole (hConsole, ptr, length, _, $NULL)
+
+stdcall std-ExitProcess (0)
+

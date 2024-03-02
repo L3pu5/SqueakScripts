@@ -1,0 +1,41 @@
+include './test/std.sq'
+seed random
+
+reserve GetStdHandle 
+reserve WriteConsole
+reserve hConsole
+reserve ExitProcess
+reserve hUser32
+reserve VirtualAlloc
+reserve wsprintfA
+reserve ptr
+reserve length
+reserve ReadConsole
+reserve hConsoleIn
+reserve ptrtwo
+reserve lentwo
+reserve ErrorCode
+
+
+stdcall std-GetProcAddress (std-Kernel32, 'GetStdHandle')   -> GetStdHandle
+stdcall std-GetProcAddress (std-Kernel32, 'WriteConsoleA')  -> WriteConsole
+stdcall std-GetProcAddress (std-Kernel32, 'ReadFile')    -> ReadConsole 
+stdcall std-GetProcAddress (std-Kernel32, 'VirtualAlloc')   -> VirtualAlloc
+stdcall std-LoadLibraryA   ('User32.dll')                   -> hUser32
+stdcall std-GetProcAddress (hUser32, 'wsprintfA')           -> wsprintfA
+
+stdcall VirtualAlloc ($NULL, 1024, $MEM_COMMIT_RESERVE, $PAGE_EXECUTE_READWRITE) -> ptr
+
+stdcall VirtualAlloc ($NULL, 1024, $MEM_COMMIT_RESERVE, $PAGE_EXECUTE_READWRITE) -> ptrtwo
+stdcall GetStdHandle ($STD_INPUT_HANDLE) -> hConsoleIn
+stdcall ReadConsole (hConsoleIn, ptrtwo, 1024, &lentwo, $NULL)
+
+#To Write after reading you need to regain the handle, I'm not sure the specifics of this, probably something to do with
+# Set handles and the lifetimes of handles in Windows Internal?
+# https://learn.microsoft.com/en-us/windows/console/getstdhandle
+stdcall GetStdHandle ($STD_OUTPUT_HANDLE) -> hConsole
+stdcall WriteConsole (hConsole, ptrtwo, lentwo, _, $NULL)
+stdcall WriteConsole (hConsole, ptrtwo, lentwo, _, $NULL)
+
+
+stdcall std-ExitProcess ( 0 )

@@ -1,0 +1,91 @@
+include './test/std.sq'
+
+seed random
+
+reserve GetStdHandle 
+reserve WriteConsole
+reserve hConsole
+reserve ExitProcess
+reserve hUser32
+reserve VirtualAlloc
+reserve wsprintfA
+reserve ptr
+reserve length
+reserve ReadConsole
+reserve hConsoleIn
+
+reserve CreateToolhelp32Snapshot 
+reserve Process32First
+reserve Process32Next
+reserve hSnapshot
+
+stdcall std-GetProcAddress (std-Kernel32, 'GetStdHandle')   -> GetStdHandle
+stdcall std-GetProcAddress (std-Kernel32, 'WriteConsoleA')  -> WriteConsole
+stdcall std-GetProcAddress (std-Kernel32, 'ReadFile')       -> ReadConsole 
+stdcall std-GetProcAddress (std-Kernel32, 'VirtualAlloc')   -> VirtualAlloc
+stdcall std-LoadLibraryA   ('User32.dll')                   -> hUser32
+stdcall std-GetProcAddress (hUser32, 'wsprintfA')           -> wsprintfA
+stdcall std-GetProcAddress (std-Kernel32, 'CreateToolhelp32Snapshot')  -> CreateToolhelp32Snapshot
+stdcall std-GetProcAddress (std-Kernel32, 'Process32First')  -> Process32First
+stdcall std-GetProcAddress (std-Kernel32, 'Process32Next')   -> Process32Next
+
+struct {
+  DWORD     dwSize; #0
+  DWORD     cntUsage; #4
+  DWORD     th32ProcessID; #8
+  DWORD     th32DefaultHeapID; #12
+  DWORD     th32ModuleID; #20
+  DWORD     cntThreads; #24
+  DWORD     th32ParentProcessID; #24
+  LONG      pcPriClassBase; #32
+  DWORD     dwFlags; #36
+  BYTE      szExeFile; #40
+} PROCESSENTRY32
+
+reserve procEntry as *PROCESSENTRY32
+stdcall VirtualAlloc ($NULL, 4096, $MEM_COMMIT_RESERVE, $PAGE_READWRITE) -> procEntry
+
+#Reserve a string in Memory
+stdcall VirtualAlloc ($NULL, 1024, $MEM_COMMIT_RESERVE, $PAGE_READWRITE) -> ptr
+
+
+define $TH32CS_SNAPPROCESS 0x2
+
+stdcall CreateToolhelp32Snapshot ($TH32CS_SNAPPROCESS , 0 ) -> hSnapshot
+
+cdecall wsprintfA (ptr, "HANDLE: %d.\n", hSnapshot) -> length
+stdcall GetStdHandle ($STD_OUTPUT_HANDLE) -> hConsole
+stdcall WriteConsole (hConsole, ptr, length, _, $NULL)
+
+move 304 -> procEntry>dwSize
+
+reserve hasSnapshot
+
+
+cdecall wsprintfA (ptr, "procEntry.dwSize: '%lu' \n", procEntry>dwSize ) -> length
+stdcall GetStdHandle ($STD_OUTPUT_HANDLE) -> hConsole
+stdcall WriteConsole (hConsole, ptr, length, _, $NULL)
+
+stdcall Process32First (hSnapshot, procEntry) -> hasSnapshot
+
+if (hasSnapshot == 0) then{
+  cdecall std-GetLastError (0) -> std-Error 
+  cdecall wsprintfA (ptr, "ERROR: '%x'\n", std-Error) -> length
+  stdcall GetStdHandle ($STD_OUTPUT_HANDLE) -> hConsole
+} else {
+  cdecall wsprintfA (ptr, "Got Snapshot.\n") -> length
+  stdcall GetStdHandle ($STD_OUTPUT_HANDLE) -> hConsole
+  stdcall WriteConsole (hConsole, ptr, length, _, $NULL)
+}
+
+do
+{
+  cdecall wsprintfA (ptr, "=========\nPID:  '%d'\nNAME: '%s'\nPPID: '%d'\n", procEntry>th32ProcessID, &procEntry>szExeFile, procEntry>th32ParentProcessID ) -> length
+  stdcall GetStdHandle ($STD_OUTPUT_HANDLE) -> hConsole
+  stdcall WriteConsole (hConsole, ptr, length, _, $NULL)
+
+  stdcall Process32Next (hSnapshot, procEntry) -> hasSnapshot
+}
+while ( hasSnapshot != 0)
+
+stdcall std-ExitProcess (0)
